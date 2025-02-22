@@ -1,1 +1,0 @@
-web: node galileo-server/planet_api.js

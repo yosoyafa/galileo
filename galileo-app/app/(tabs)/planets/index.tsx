@@ -1,52 +1,114 @@
-import { View, StyleSheet, TextInput, SafeAreaView, FlatList, Image, TouchableOpacity } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Link } from 'expo-router';
+import {
+  View,
+  SafeAreaView,
+  FlatList,
+  StyleSheet,
+  RefreshControl
+} from 'react-native'
+import { ThemedText } from '@components/ui/ThemedText'
+import { IconSymbol } from '@/components/ui/IconSymbol'
+import { router } from 'expo-router'
+import { Planet, useGetPlanetsQuery } from '@services/planets'
+import { useEffect, useState, useCallback } from 'react'
+import { PlanetCard } from '@components/core/PlanetCard'
+import { SearchBar } from '@components/ui/SearchBar'
+import { useThemeColor } from '@hooks/useThemeColor'
 
 export default function HomeScreen() {
+  const { data: planets, refetch } = useGetPlanetsQuery()
+  const iconColor = useThemeColor({}, 'text')
+
+  const [filteredPlanets, setFilteredPlanets] = useState<Planet[] | undefined>(
+    planets
+  )
+  const [searchTerm, setSearchTerm] = useState<string>('')
+
+  const [order, setOrder] = useState<'asc' | 'desc' | 'none'>('none')
+  const [refreshing, setRefreshing] = useState(false)
+
+  useEffect(() => {
+    setFilteredPlanets(planets)
+  }, [planets])
+
+  useEffect(() => {
+    setFilteredPlanets(
+      planets?.filter(({ name }) =>
+        name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    )
+  }, [searchTerm])
+
+  useEffect(() => {
+    if (order === 'asc' && planets) {
+      const sortedPlanets = [...planets].sort((a, b) => a.name.localeCompare(b.name))
+      setFilteredPlanets(sortedPlanets)
+    } else if (order === 'desc' && planets) {
+      const sortedPlanets = [...planets].sort((a, b) => b.name.localeCompare(a.name))
+      setFilteredPlanets(sortedPlanets)
+    } else {
+      setFilteredPlanets(planets)
+    }
+  }, [order, planets])
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true)
+    refetch().then(() => setRefreshing(false))
+  }, [refetch])
+
   return (
-    <SafeAreaView >
-      <View style={{ padding: 16, paddingTop: 32, gap: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
           <ThemedText type='title'>Galileo</ThemedText>
-          <IconSymbol name='globe.americas.fill' size={28} color='black' />
+          <IconSymbol name='globe.americas.fill' size={28} color={iconColor} />
         </View>
-        <TextInput style={{ padding: 16, backgroundColor: 'white', borderRadius: 8 }} placeholder='Search' clearButtonMode='while-editing' />
+        <SearchBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          order={order}
+          setOrder={setOrder}
+        />
         <FlatList
-          data={[1, 2, 3, 4, 5]}
+          data={filteredPlanets}
+          keyExtractor={({ id }) => id.toString()}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <Link href={{ pathname: '/planets/[planetId]', params: { planetId: 1 } }} asChild relativeToDirectory>
-              <TouchableOpacity style={{ flex: 1, width: '100%', padding: 16, borderRadius: 8, backgroundColor: 'white', flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <Image source={require('@/assets/images/react-logo.png')} style={{ height: 50, width: 50 }} />
-                <ThemedText>Item {item}</ThemedText>
-              </TouchableOpacity>
-            </Link>
+          renderItem={({ item: { name, picture, id } }) => (
+            <PlanetCard
+              name={name}
+              picture={picture}
+              onPress={() => router.navigate(`/planets/${id}`)}
+            />
           )}
-          contentContainerStyle={{ gap: 16 }}
-          style={{ flex: 0 }}
+          contentContainerStyle={styles.flatListContent}
+          style={styles.flatList}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
       </View>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safeArea: {
+    flex: 1
+  },
+  container: {
+    padding: 16,
+    paddingTop: 32,
+    gap: 16,
+    flex: 1
+  },
+  header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between'
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  flatListContent: {
+    gap: 16,
+    paddingBottom: 16
   },
-  reactLogo: {
-    height: 50,
-    width: 50,
-  },
-});
+  flatList: {
+    flex: 1
+  }
+})

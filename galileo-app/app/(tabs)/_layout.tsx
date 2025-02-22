@@ -1,15 +1,14 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Tabs } from 'expo-router'
+import React from 'react'
+import { Platform, useColorScheme } from 'react-native'
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { HapticTab } from '@components/ui/HapticTab'
+import { IconSymbol } from '@/components/ui/IconSymbol'
+import TabBarBackground from '@/components/ui/TabBarBackground'
+import { Colors } from '@/constants/Colors'
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme()
 
   return (
     <Tabs
@@ -21,25 +20,29 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
+            position: 'absolute'
           },
-          default: {},
-        }),
+          default: {}
+        })
       }}>
       <Tabs.Screen
-        name="planets"
+        name='planets'
         options={{
           title: 'Planets',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="globe.americas.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name='globe.americas.fill' color={color} />
+          )
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name='favorites'
         options={{
           title: 'Favorites',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name='heart.fill' color={color} />
+          )
         }}
       />
     </Tabs>
-  );
+  )
 }

@@ -1,111 +1,139 @@
-import { StyleSheet, Image, Platform } from 'react-native';
-
-import { useLocalSearchParams } from "expo-router"
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Image, TouchableOpacity, View, StyleSheet } from 'react-native'
+import { router, useLocalSearchParams } from 'expo-router'
+import ParallaxScrollView from '@components/ui/ParallaxScrollView'
+import { ThemedText } from '@components/ui/ThemedText'
+import { ThemedView } from '@components/ui/ThemedView'
+import { IconSymbol, IconSymbolName } from '@/components/ui/IconSymbol'
+import { useGetPlanetByIdQuery, Planet } from '@services/planets'
+import { useAppDispatch, useAppSelector } from '@store/hooks'
+import { addToFavorites, removeFromFavorites } from '@store/userPreferences/slice'
+import { selectFavoritePlanets } from '@store/userPreferences/selectors'
+import { useThemeColor } from '@hooks/useThemeColor'
+import { useMemo } from 'react'
 
 export default function PlanetDetail() {
-    const { planetId } = useLocalSearchParams()
+  const { planetId } = useLocalSearchParams()
+  const iconColor = useThemeColor({}, 'icon')
+  const backgroundColor = useThemeColor({}, 'background')
+  const favoritePlanets = useAppSelector(selectFavoritePlanets)
+  const dispatch = useAppDispatch()
+  const { data: planet, isLoading } = useGetPlanetByIdQuery(planetId as string)
+
+  const isFavorite = useMemo(
+    () => planet?.id !== undefined && !!favoritePlanets[planet.id],
+    [favoritePlanets, planet?.id]
+  )
+
+  const renderPlanetDetails = (planet: Planet) => {
+    const { name, description, mass, diameter, orbitalPeriod, moons, id } = planet
+
     return (
-        <ParallaxScrollView
-            headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-            headerImage={
-                <IconSymbol
-                    size={310}
-                    color="#808080"
-                    name="chevron.left.forwardslash.chevron.right"
-                    style={styles.headerImage}
-                />
-            }>
-            <ThemedView style={styles.titleContainer}>
-                <ThemedText type="title">Explore {planetId}</ThemedText>
-            </ThemedView>
-            <ThemedText>This app includes example code to help you get started.</ThemedText>
-            <Collapsible title="File-based routing">
-                <ThemedText>
-                    This app has two screens:{' '}
-                    <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-                    <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-                </ThemedText>
-                <ThemedText>
-                    The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-                    sets up the tab navigator.
-                </ThemedText>
-                <ExternalLink href="https://docs.expo.dev/router/introduction">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Android, iOS, and web support">
-                <ThemedText>
-                    You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-                    <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-                </ThemedText>
-            </Collapsible>
-            <Collapsible title="Images">
-                <ThemedText>
-                    For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-                    <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-                    different screen densities
-                </ThemedText>
-                <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-                <ExternalLink href="https://reactnative.dev/docs/images">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Custom fonts">
-                <ThemedText>
-                    Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-                    <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-                        custom fonts such as this one.
-                    </ThemedText>
-                </ThemedText>
-                <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Light and dark mode components">
-                <ThemedText>
-                    This template has light and dark mode support. The{' '}
-                    <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-                    what the user's current color scheme is, and so you can adjust UI colors accordingly.
-                </ThemedText>
-                <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-                    <ThemedText type="link">Learn more</ThemedText>
-                </ExternalLink>
-            </Collapsible>
-            <Collapsible title="Animations">
-                <ThemedText>
-                    This template includes an example of an animated component. The{' '}
-                    <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-                    the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-                    library to create a waving hand animation.
-                </ThemedText>
-                {Platform.select({
-                    ios: (
-                        <ThemedText>
-                            The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-                            component provides a parallax effect for the header image.
-                        </ThemedText>
-                    ),
-                })}
-            </Collapsible>
-        </ParallaxScrollView>
-    );
+      <>
+        <ThemedView style={styles.detailHeader}>
+          <ThemedText type='title'>Explore {name}</ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              dispatch(isFavorite ? removeFromFavorites(id) : addToFavorites(planet))
+            }}>
+            <IconSymbol name={isFavorite ? 'heart.fill' : 'heart'} color={'red'} />
+          </TouchableOpacity>
+        </ThemedView>
+        <ThemedText>{description}</ThemedText>
+        <DetailRow
+          icon='scalemass.fill'
+          label='Mass:'
+          value={mass}
+          iconColor={iconColor}
+        />
+        <DetailRow
+          icon='lines.measurement.horizontal'
+          label='Diameter:'
+          value={diameter}
+          iconColor={iconColor}
+        />
+        <DetailRow
+          icon='timer'
+          label='Orbital Period:'
+          value={orbitalPeriod}
+          iconColor={iconColor}
+        />
+        <DetailRow
+          icon='moon.fill'
+          label='Number of Moons:'
+          value={moons}
+          iconColor={iconColor}
+        />
+        <DetailRow
+          icon='moon.fill'
+          label='Number of Moons:'
+          value={moons}
+          iconColor={iconColor}
+        />
+      </>
+    )
+  }
+
+  if (!planet) return null
+
+  return (
+    <ParallaxScrollView
+      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      headerImage={
+        <View style={styles.imageContainer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor }]}>
+            <IconSymbol name='arrow.backward' size={25} color={iconColor} />
+          </TouchableOpacity>
+          <Image style={styles.headerImage} source={{ uri: planet.picture }} />
+        </View>
+      }>
+      {renderPlanetDetails(planet)}
+    </ParallaxScrollView>
+  )
+}
+
+interface DetailRowProps {
+  icon: IconSymbolName
+  label: string
+  value: string | number
+  iconColor: string
+}
+
+function DetailRow({ icon, label, value, iconColor }: DetailRowProps) {
+  return (
+    <View style={styles.detailRow}>
+      <IconSymbol name={icon} color={iconColor} />
+      <ThemedText>
+        <ThemedText type='defaultSemiBold'>{label}</ThemedText> {value}
+      </ThemedText>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-    headerImage: {
-        color: '#808080',
-        bottom: -90,
-        left: -35,
-        position: 'absolute',
-    },
-    titleContainer: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-});
+  imageContainer: {
+    position: 'relative'
+  },
+  headerImage: {
+    width: '100%',
+    height: 300
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    padding: 8,
+    borderRadius: 50
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  }
+})
